@@ -11,6 +11,7 @@ export const ProductsPage = lazy(() => import('src/pages/products'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
 export const CreateCocktailView = lazy(() => import('src/pages/create-cocktail'));
 export const ViewCocktailView = lazy(() => import('src/pages/view-cocktail'));
+export const CreateArticleView = lazy(() => import('src/sections/create-article/view/create-article-view'));
 
 // ----------------------------------------------------------------------
 
@@ -31,6 +32,7 @@ export default function Router() {
         { path: 'blog', element: <BlogPage /> },
         { path: 'create-cocktail', element: <CreateCocktailView /> },
         { path: 'view-cocktail', element: <ViewCocktailView /> },
+        { path: 'create-article', element: <CreateArticleView /> },
       ],
     },
     {

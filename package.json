@@ -5,7 +5,7 @@
   "version": "1.8.0",
   "private": false,
   "scripts": {
-    "dev": "vite --host",
+    "dev": "vite --host --force",
     "start": "vite preview",
     "build": "vite build",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
