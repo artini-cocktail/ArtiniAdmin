@@ -4,15 +4,10 @@ import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-
-// import red color from '@mui/material/colors/red';
 import { red } from '@mui/material/colors';
-
+import Typography from '@mui/material/Typography';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-// import { fCurrency } from 'src/utils/format-number';
-import Label from 'src/components/label';
 
 // ----------------------------------------------------------------------
 

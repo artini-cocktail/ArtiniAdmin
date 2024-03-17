@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { getDocs, collection } from "firebase/firestore";
+
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
@@ -6,8 +8,6 @@ import Grid from '@mui/material/Unstable_Grid2';
 import Typography from '@mui/material/Typography';
 
 import { db } from 'src/services/firebase';
-
-import { collection, doc, getDoc, getDocs, query, where, orderBy, limit, onSnapshot, updateDoc, setDoc } from "firebase/firestore";
 
 import Iconify from 'src/components/iconify';
 
@@ -42,9 +42,7 @@ export default function BlogView() {
         setPosts(minimizedArticles);
 
         // Pour aplatir les articles de toutes catégories
-        const flattenedArticles = Object.values(minimizedArticles).reduce((acc, curr) => {
-          return [...acc, ...Object.values(curr)];
-        }, []);
+        const flattenedArticles = Object.values(minimizedArticles).reduce((acc, curr) => [...acc, ...Object.values(curr)], []);
         setAllArticles(flattenedArticles);
 
         // Préparation des données de catégorie
@@ -61,27 +59,10 @@ export default function BlogView() {
     fetchData();
   }, []);
 
-  const prepareCategoryData = (modules) => {
-    return Object.entries(modules).map(([key, value]) => ({
-      title: value?.title,
-      icon: value?.icon,
-      key: key, // Utilisez la clé de catégorie comme key pour le keyExtractor de FlatList
-    }));
-  };
-  const flattenArticles = (modules) => {
-    let allArticles = [];
-    Object.entries(modules).forEach(([categoryKey, categoryValue]) => {
-      const articles = Object.entries(categoryValue.Articles).map(([articleKey, article]) => ({
-        ...article,
-        category: categoryKey,
-        id: articleKey, // Ajout d'un identifiant unique pour chaque article
-      }));
-      allArticles = [...allArticles, ...articles];
-    });
-    return allArticles;
-  };
+  const onSort = (category) => {
+    setSelectedCategory(category);
 
-
+  }
 
   if (posts) {
     return (
@@ -97,11 +78,8 @@ export default function BlogView() {
         <Stack mb={5} direction="row" alignItems="center" justifyContent="space-between">
           <PostSearch posts={posts} />
           <PostSort
-            options={[
-              { value: 'latest', label: 'Latest' },
-              { value: 'popular', label: 'Popular' },
-              { value: 'oldest', label: 'Oldest' },
-            ]}
+            options={categoryData}
+            onSort={onSort}
           />
         </Stack>
 
@@ -125,9 +103,10 @@ const fetchModules = async () => {
   try {
     const modulesRef = collection(db, 'modules');
     const querySnapshot = await getDocs(modulesRef);
-    const data = querySnapshot.docs.map((document) => { return { id: document.id, ...document.data() } });
-    return data
+    const data = querySnapshot.docs.map((document) => ({ id: document.id, ...document.data() }));
+    return data;
   } catch (error) {
     console.log(error);
+    return null;
   }
 }

@@ -13,7 +13,6 @@ import ProductCard from '../product-card';
 // import ProductSort from '../product-sort';
 // import ProductFilters from '../product-filters';
 import ProductTableToolbar from '../products-toolbar';
-import ProductCartWidget from '../product-cart-widget';
 
 // ----------------------------------------------------------------------
 

@@ -1,36 +1,29 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 // import connexion with email and password
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { collection, addDoc, serverTimestamp, getDoc, doc, setDoc } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytesResumable, uploadBytes } from "firebase/storage";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-import { db, storage } from 'src/services/firebase';
-
-import Button from '@mui/material/Button';
-import ButtonGroup from '@mui/material/ButtonGroup';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
-import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
-import LoadingButton from '@mui/lab/LoadingButton';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
+import Radio from '@mui/material/Radio';
+import Button from '@mui/material/Button';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
-import { alpha, useTheme } from '@mui/material/styles';
-import InputAdornment from '@mui/material/InputAdornment';
-import Radio from '@mui/material/Radio';
+import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
+import InputLabel from '@mui/material/InputLabel';
 import RadioGroup from '@mui/material/RadioGroup';
+import FormControl from '@mui/material/FormControl';
+import DeleteIcon from '@mui/icons-material/Delete';
+import InputAdornment from '@mui/material/InputAdornment';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
-
-import DeleteIcon from '@mui/icons-material/Delete';
+import { db, storage } from 'src/services/firebase';
 // ----------------------------------------------------------------------
 
 
-const createArticleView = () => {
+export const CreateArticleView = () => {
     const [pages, setPages] = useState([
         { // Première page de garde
             title: '',
@@ -56,7 +49,7 @@ const createArticleView = () => {
             const docSnap = await getDoc(docRef);
 
             if (docSnap.exists()) {
-                let data = docSnap.data();
+                const data = docSnap.data();
 
                 // Vérifie si la catégorie existe déjà
                 if (data[categoryName] && data[categoryName].Articles) {
@@ -82,14 +75,13 @@ const createArticleView = () => {
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                const categories = Object.keys(data).filter(key => key !== "id"); // Exclure 'id' si présent
-                console.log("Catégories récupérées:", categories);
-                setCategory(categories[0]); // Sélectionnez la première catégorie par défaut
-                return categories; // Retourne un tableau des noms des catégories
-            } else {
-                console.log("Document n'existe pas, veuillez vérifier le chemin ou initialiser la structure de données.");
-                return [];
+                const getCategories = Object.keys(data).filter(key => key !== "id"); // Exclure 'id' si présent
+                console.log("Catégories récupérées:", getCategories);
+                setCategory(getCategories[0]); // Sélectionnez la première catégorie par défaut
+                return getCategories; // Retourne un tableau des noms des catégories
             }
+            console.log("Document n'existe pas, veuillez vérifier le chemin ou initialiser la structure de données.");
+            return [];
         } catch (error) {
             console.error("Erreur lors de la récupération des catégories :", error);
             return [];
@@ -189,7 +181,7 @@ const createArticleView = () => {
                 content: isQuizPage
                     ? { ...page.elements[0] } // Si c'est une page de quiz, utilisez directement le premier élément (le quiz)
                     : page.elements.reduce((contentAcc, element, elementIndex) => {
-                        const key = element.type + '_' + (elementIndex + 1);
+                        const key = `${element.type}_${elementIndex + 1}`;
                         contentAcc[key] = element.content; // Pour les images, l'URL de Firebase Storage sera utilisée
                         return contentAcc;
                     }, {})
@@ -201,9 +193,12 @@ const createArticleView = () => {
         await setDoc(doc(db, "modules", "2BYGWXW8IciaE0d0eRyB", "Articles", pages[0].title), pagesObject);
     };
 
-    const renderPageElements = (elements) => elements.map((element, index) => (
-        <Stack key={index} direction="row" alignItems="center" spacing={1}>
-            {element.type === 'text' ? (
+
+    const renderPageElements = (elements) => elements.map((element, index) => {
+        let renderedElement = null;
+
+        if (element.type === 'text') {
+            renderedElement = (
                 <TextField
                     fullWidth
                     multiline
@@ -215,7 +210,9 @@ const createArticleView = () => {
                         setPages(updatedPages);
                     }}
                 />
-            ) : element.type === 'image' ? (
+            );
+        } else if (element.type === 'image') {
+            renderedElement = (
                 <input
                     type="file"
                     onChange={(e) => {
@@ -224,7 +221,9 @@ const createArticleView = () => {
                         setPages(updatedPages);
                     }}
                 />
-            ) : element.type === 'quiz' ? (
+            );
+        } else if (element.type === 'quiz') {
+            renderedElement = (
                 <Card style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <TextField
                         fullWidth
@@ -255,12 +254,18 @@ const createArticleView = () => {
                         ))}
                     </RadioGroup>
                 </Card>
-            ) : null}
-            <IconButton aria-label="delete" onClick={() => handleDeleteElement(index)}>
-                <DeleteIcon />
-            </IconButton>
-        </Stack>
-    ));
+            );
+        }
+
+        return (
+            <Stack key={index} direction="row" alignItems="center" spacing={1}>
+                {renderedElement}
+                <IconButton aria-label="delete" onClick={() => handleDeleteElement(index)}>
+                    <DeleteIcon />
+                </IconButton>
+            </Stack>
+        );
+    });
 
     return (
         <Box sx={{ p: 4 }}>
@@ -355,7 +360,7 @@ const createArticleView = () => {
                 <Button variant="outlined" onClick={handleAddPage}>Ajouter une Page</Button>
                 <Button variant="outlined" onClick={handleAddQuizPage}>Ajouter une Page de Quiz</Button>
                 {/* Submit Button here */}
-                <Button variant="contained" onClick={handleSubmit}>Créer l'article</Button>
+                <Button variant="contained" onClick={handleSubmit}>Créer l`&apos;`article</Button>
             </Stack>
         </Box>
     );
@@ -371,4 +376,4 @@ const uploadImageToStorage = async (file) => {
     return downloadURL;
 };
 
-export default createArticleView
+export default CreateArticleView

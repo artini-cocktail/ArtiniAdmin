@@ -1,1 +1,1 @@
-export { default as createArticleView } from './create-article-view';
+export { default as CreateArticleView } from './create-article-view';

@@ -1,26 +1,25 @@
-import { useState, useRef, useEffect } from 'react';
-// import connexion with email and password
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
+import {
+  useRef, useState, useEffect
+} from 'react';// import connexion with email and password
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { ref, getDownloadURL, uploadBytesResumable } from "firebase/storage";
 
-import { db, storage } from 'src/services/firebase';
-
-import Button from '@mui/material/Button';
-import ButtonGroup from '@mui/material/ButtonGroup';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import LoadingButton from '@mui/lab/LoadingButton';
+import ButtonGroup from '@mui/material/ButtonGroup';
 import { alpha, useTheme } from '@mui/material/styles';
 import InputAdornment from '@mui/material/InputAdornment';
 
 import { useRouter } from 'src/routes/hooks';
 
 import { bgGradient } from 'src/theme/css';
+import { db, storage } from 'src/services/firebase';
 
 import Logo from 'src/components/logo';
 import Iconify from 'src/components/iconify';
@@ -67,8 +66,6 @@ export default function CreateCocktailView() {
       views: 0,
       likes: 0,
       createdAt: serverTimestamp(),
-
-
     }
   );
 

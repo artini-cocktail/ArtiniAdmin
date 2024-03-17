@@ -1,28 +1,25 @@
-import { useState, useRef, useEffect } from 'react';
-// import connexion with email and password
-import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
-
-import { db, storage } from 'src/services/firebase';
-
-import { ToastContainer, toast } from 'react-toastify';
-
+import {
+  useRef, useState, useEffect
+} from 'react';// import connexion with email and password
 import 'react-toastify/dist/ReactToastify.css';
+import { toast, ToastContainer } from 'react-toastify';
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { ref, getDownloadURL, uploadBytesResumable } from "firebase/storage";
 
-import Button from '@mui/material/Button';
-import ButtonGroup from '@mui/material/ButtonGroup';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import LoadingButton from '@mui/lab/LoadingButton';
+import ButtonGroup from '@mui/material/ButtonGroup';
 import { alpha, useTheme } from '@mui/material/styles';
 import InputAdornment from '@mui/material/InputAdornment';
 
 import { bgGradient } from 'src/theme/css';
+import { db, storage } from 'src/services/firebase';
 
 import Logo from 'src/components/logo';
 import Iconify from 'src/components/iconify';
@@ -53,7 +50,6 @@ export default function CocktailView() {
 
 
   const [downloadURL, setDownloadURL] = useState("");
-  const [photo, setPhoto] = useState("");
 
   const [percent, setPercent] = useState(0);
   const glassList = ["Martini", "Rock", "Flute", "Tiki", "Beer", "Champagne", "Old fashioned", "Highball", "Hurricane", "Shooter", "Margarita", "Pilsner", "Balloon"];
@@ -114,7 +110,8 @@ export default function CocktailView() {
       () => {
         getDownloadURL(uploadTask.snapshot.ref).then((url) => {
           setDownloadURL(url);
-          setPhoto(url);
+          setPercent(100);
+          setCocktail((prevCocktail) => ({ ...prevCocktail, photo: url }));
         });
       }
     );
