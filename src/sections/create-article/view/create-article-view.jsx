@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 // import connexion with email and password
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp, getDoc, doc, setDoc } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
+import { getDownloadURL, ref, uploadBytesResumable, uploadBytes } from "firebase/storage";
 
 import { db, storage } from 'src/services/firebase';
 
@@ -65,7 +65,6 @@ const createArticleView = () => {
                     // Si la catégorie n'existe pas, créez-la avec le nouvel article
                     data[categoryName] = { Articles: { [newArticle.title]: newArticle } };
                 }
-
                 // Mise à jour du document avec les nouvelles données
                 await setDoc(docRef, data, { merge: true });
                 console.log("Article ajouté avec succès dans la catégorie:", categoryName);
@@ -157,6 +156,7 @@ const createArticleView = () => {
 
     const uploadImageAndReplaceUrl = async (element) => {
         if (element.type === 'image') {
+            console.log("Téléchargement de l'image et remplacement de l'URL:", element.content);
             const url = await uploadImageToStorage(element.content); // Assurez-vous que element.content est un File
             return { ...element, content: url };
         }
@@ -164,27 +164,40 @@ const createArticleView = () => {
     };
 
     const preparePageContent = async (page) => {
+        console.log("Préparation de la page pour la soumission:", page);
         const elements = await Promise.all(page.elements.map(uploadImageAndReplaceUrl));
         return { ...page, elements };
     };
 
 
     const handleSubmit = async () => {
-        addArticleToCategory(category, { title: pages[0].title, nbPages: pages.length - 1, pages, image: imageCover, likes: 0, timeToRead, description });
-        const updatedPages = await Promise.all(pages.map(preparePageContent));
+        const convertedImageCover = await uploadImageToStorage(imageCover);
+        await addArticleToCategory(category, { title: pages[0].title, nbPages: pages.length - 1, image: convertedImageCover, likes: 0, timeToRead, description });
 
+
+        // submit toutes les images et met à jour les URL dans les pages
+        const updatedPages = await Promise.all(pages.map(preparePageContent));
+        console.log("Pages préparées pour la soumission:", updatedPages);
         // Structurez les données des pages comme requis
         const pagesObject = updatedPages.reduce((acc, page, index) => {
-            acc[`Page_${index + 1}`] = {
+            // Détermine si la page actuelle est un quiz
+            const isQuizPage = page.elements.some(element => element.type === 'quiz');
+
+            const pageIndex = isQuizPage ? `Quizz_${index + 1}` : `Page_${index + 1}`;
+            acc[pageIndex] = {
                 Title: page.title,
-                content: page.elements.reduce((contentAcc, element, elementIndex) => {
-                    const key = element.type + '_' + (elementIndex + 1);
-                    contentAcc[key] = element.content; // Pour les images, l'URL de Firebase Storage sera utilisée
-                    return contentAcc;
-                }, {})
+                content: isQuizPage
+                    ? { ...page.elements[0] } // Si c'est une page de quiz, utilisez directement le premier élément (le quiz)
+                    : page.elements.reduce((contentAcc, element, elementIndex) => {
+                        const key = element.type + '_' + (elementIndex + 1);
+                        contentAcc[key] = element.content; // Pour les images, l'URL de Firebase Storage sera utilisée
+                        return contentAcc;
+                    }, {})
             };
             return acc;
         }, {});
+
+        console.log("Pages préparées pour la soumission:", pagesObject);
         await setDoc(doc(db, "modules", "2BYGWXW8IciaE0d0eRyB", "Articles", pages[0].title), pagesObject);
     };
 
@@ -206,7 +219,9 @@ const createArticleView = () => {
                 <input
                     type="file"
                     onChange={(e) => {
-                        // Handle image change...
+                        const updatedPages = [...pages];
+                        updatedPages[currentPageIndex].elements[index].content = e.target.files[0];
+                        setPages(updatedPages);
                     }}
                 />
             ) : element.type === 'quiz' ? (
@@ -348,11 +363,11 @@ const createArticleView = () => {
 
 const uploadImageToStorage = async (file) => {
     if (!file) return null;
-
-    const storageRef = ref(storage, `articles/${file.name}_${Date.now()}`);
+    console.log("Uploading image to storage...");
+    const storageRef = ref(storage, `articles/${Date.now()}_${file.name}`);
     await uploadBytes(storageRef, file);
     const downloadURL = await getDownloadURL(storageRef);
-
+    console.log("Image uploaded to storage:", downloadURL);
     return downloadURL;
 };
 

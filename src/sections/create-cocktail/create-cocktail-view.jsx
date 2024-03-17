@@ -63,7 +63,11 @@ export default function CreateCocktailView() {
       description: "",
       photo: "",
       Validated: false,
-      publisher: "r119v4QX3eMfWIhHRsesPp53t7X2"
+      publisher: "r119v4QX3eMfWIhHRsesPp53t7X2",
+      views: 0,
+      likes: 0,
+      createdAt: serverTimestamp(),
+
 
     }
   );

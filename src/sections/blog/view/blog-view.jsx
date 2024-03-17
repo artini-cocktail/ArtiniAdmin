@@ -61,88 +61,6 @@ export default function BlogView() {
     fetchData();
   }, []);
 
-  // const setNewData = async () => {
-  //   const ModuleData = await fetchModules();
-  //   console.log("modulId", ModuleData);
-  //   const setDocRef = doc(db, "modules", ModuleData[0].id);
-  //   await setDoc(setDocRef, {
-  //     "Skills":
-  //     {
-  //       "Articles":
-  //       {
-  //         "Shaking 2":
-  //         {
-  //           "title": "Shaing 2",
-  //           "nbPages": 3,
-  //           "timeToRead": 5,
-  //           "image": "https://firebasestorage.googleapis.com/v0/b/artini-2.appspot.com/o/Articles%2FTequilla.jpg?alt=media&token=3e3e3e3e-3e3e-3e3e-3e3e-3e3e3e3e3e3e",
-  //           "likes": 0,
-  //           "description": "La Shaking 2 est une boisson alcoolisée mexicaine fabriquée à partir de l'agave bleu."
-  //         },
-  //         "Shaking":
-  //         {
-  //           "nbPages": 3,
-  //           "title": "Shaking",
-  //           "timeToRead": 5,
-  //           "image": "https://firebasestorage.googleapis.com/v0/b/artini-2.appspot.com/o/Articles%2FMartini.jpg?alt=media&token=3e3e3e3e-3e3e-3e3e-3e3e-3e3e3e3e3e3e",
-  //           "likes": 0,
-  //           "description": "Le Shaking est un cocktail à base de gin et de vermouth, servi avec une olive ou un zeste de citron."
-  //         },
-  //         "Technique 1":
-  //         {
-  //           "nbPages": 3,
-  //           "title": "Technique",
-  //           "description": "Le Technique est une eau-de-vie obtenue par distillation de céréales maltées ou non.",
-  //           "timeToRead": 5,
-  //           "likes": 0,
-  //           "image": "https://firebasestorage.googleapis.com/v0/b/artini-2.appspot.com/o/Articles%2FWhiskey.jpg?alt=media&token=3e3e3e3e-3e3e-3e3e-3e3e-3e3e3e3e3e3e"
-  //         }
-  //       },
-  //       "title": "Skills",
-  //       "icon": "construct"
-  //     },
-  //     "Alcohol":
-  //     {
-  //       "Articles":
-  //       {
-  //         "Vodka":
-  //         {
-  //           "likes": 0, "title": "Vodka",
-  //           "image": "https://images.unsplash.com/photo-1609951651556-5334e2706168?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-  //           "description": "La vodka est une eau-de-vie obtenue par distillation de céréales maltées ou non.",
-  //           "nbPages": 3,
-  //           "timeToRead": 5
-  //         },
-  //         "Rhum": {
-  //           "nbPages": 3,
-  //           "description": "Le rhum est une eau-de-vie obtenue par distillation de céréales maltées ou non.",
-  //           "title": "Rhum",
-  //           "image": "https://images.unsplash.com/photo-1609951651556-5334e2706168?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-  //           "likes": 0,
-  //           "timeToRead": 5
-  //         },
-  //         "Martini": {
-  //           "title": "Martini",
-  //           "timeToRead": 5,
-  //           "likes": 0,
-  //           "image": "https://images.unsplash.com/photo-1609951651556-5334e2706168?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-  //           "nbPages": 3,
-  //           "description": "Le martini est un cocktail à base de gin et de vermouth, servi avec une olive ou un zeste de citron."
-  //         },
-  //         "Whiskey": { "nbPages": 3, "image": "https://images.unsplash.com/photo-1609951651556-5334e2706168?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", "timeToRead": 5, "title": "Whiskey", "likes": 0, "description": "Le whisky est une eau-de-vie obtenue par distillation de céréales maltées ou non." }, "Tequilla": {
-  //           "image": "https://images.unsplash.com/photo-1609951651556-5334e2706168?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-  //           "title": "Tequilla",
-  //           "likes": 0,
-  //           "timeToRead": 5,
-  //           "nbPages": 3,
-  //           "description": "La tequila est une boisson alcoolisée mexicaine fabriquée à partir de l'agave bleu."
-  //         }
-  //       }, "icon": "wine", "title": "Alcohol"
-  //     }
-  //   });
-  // }
-  // setNewData();
-
   const prepareCategoryData = (modules) => {
     return Object.entries(modules).map(([key, value]) => ({
       title: value?.title,
@@ -171,7 +89,7 @@ export default function BlogView() {
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
           <Typography variant="h4">Blog</Typography>
 
-          <Button variant="contained" color="inherit" startIcon={<Iconify icon="eva:plus-fill" />}>
+          <Button variant="contained" color="inherit" startIcon={<Iconify icon="eva:plus-fill" />} onClick={() => { window.location.href = '/create-article'; }}>
             New Post
           </Button>
         </Stack>
