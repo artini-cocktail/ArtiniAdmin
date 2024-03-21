@@ -1,8 +1,7 @@
 import PropTypes from 'prop-types';
-import { getAuth } from 'firebase/auth'
-import { useState, useEffect } from 'react'
-import { Navigate } from "react-router-dom";
-
+import { getAuth } from 'firebase/auth';
+import { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 
 // ----------------------------------------------------------------------
 
@@ -20,16 +19,22 @@ export default function PrivateRoute({ children, mustBeLoggedIn = true }) {
   }, [auth]);
 
   if (isLoading) {
-    return (<>Loading</>)
+    return <>Loading</>;
   }
+
+  console.log('isLoggedIn', isLoggedIn);
+  console.log('mustBeLoggedIn', mustBeLoggedIn);
 
   if (!isLoggedIn && mustBeLoggedIn) {
-    return <Navigate to="/login" />
+    console.log('Navigate to login');
+    return <Navigate to="/login" />;
   }
-  if (isLoggedIn && !mustBeLoggedIn) {
-    return <Navigate to="/" />
+  if (isLoggedIn && mustBeLoggedIn) {
+    console.log('Navigate to Home');
+    return <Navigate to="/" />;
   }
-
+  console.log('Render children');
+  console.log(children);
   return <>{children}</>;
 }
 

@@ -49,8 +49,13 @@ export default function Router() {
       ],
     },
     {
-      element: <PrivateRoute mustBeLoggedIn={false} />,
+      element: (
+        <PrivateRoute mustBeLoggedIn={false}>
+          <Outlet />
+        </PrivateRoute>
+      ),
       children: [
+        { element: <IndexPage />, index: true },
         {
           path: 'login',
           element: <LoginPage />,
