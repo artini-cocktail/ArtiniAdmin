@@ -32,4 +32,7 @@ export default defineConfig({
   preview: {
     port: 3030,
   },
+  build: {
+    outDir: 'build',
+  },
 });
