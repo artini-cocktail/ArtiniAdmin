@@ -3,6 +3,8 @@ import { Outlet, Navigate, useRoutes } from 'react-router-dom';
 
 import DashboardLayout from 'src/layouts/dashboard';
 
+import PrivateRoute from './components/private-route/private-route';
+
 export const IndexPage = lazy(() => import('src/pages/app'));
 export const BlogPage = lazy(() => import('src/pages/blog'));
 export const UserPage = lazy(() => import('src/pages/user'));
@@ -11,7 +13,9 @@ export const ProductsPage = lazy(() => import('src/pages/products'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
 export const CreateCocktailView = lazy(() => import('src/pages/create-cocktail'));
 export const ViewCocktailView = lazy(() => import('src/pages/view-cocktail'));
-export const CreateArticleView = lazy(() => import('src/sections/create-article/view/create-article-view'));
+export const CreateArticleView = lazy(() =>
+  import('src/sections/create-article/view/create-article-view')
+);
 
 // ----------------------------------------------------------------------
 
@@ -19,25 +23,39 @@ export default function Router() {
   const routes = useRoutes([
     {
       element: (
-        <DashboardLayout>
-          <Suspense>
-            <Outlet />
-          </Suspense>
-        </DashboardLayout>
+        <PrivateRoute>
+          <Outlet />
+        </PrivateRoute>
       ),
       children: [
-        { element: <IndexPage />, index: true },
-        { path: 'user', element: <UserPage /> },
-        { path: 'products', element: <ProductsPage /> },
-        { path: 'blog', element: <BlogPage /> },
-        { path: 'create-cocktail', element: <CreateCocktailView /> },
-        { path: 'view-cocktail', element: <ViewCocktailView /> },
-        { path: 'create-article', element: <CreateArticleView /> },
+        {
+          element: (
+            <DashboardLayout>
+              <Suspense>
+                <Outlet />
+              </Suspense>
+            </DashboardLayout>
+          ),
+          children: [
+            { element: <IndexPage />, index: true },
+            { path: 'user', element: <UserPage /> },
+            { path: 'products', element: <ProductsPage /> },
+            { path: 'blog', element: <BlogPage /> },
+            { path: 'create-cocktail', element: <CreateCocktailView /> },
+            { path: 'view-cocktail', element: <ViewCocktailView /> },
+            { path: 'create-article', element: <CreateArticleView /> },
+          ],
+        },
       ],
     },
     {
-      path: 'login',
-      element: <LoginPage />,
+      element: <PrivateRoute mustBeLoggedIn={false} />,
+      children: [
+        {
+          path: 'login',
+          element: <LoginPage />,
+        },
+      ],
     },
     {
       path: '404',
