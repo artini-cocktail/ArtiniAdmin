@@ -29,7 +29,7 @@ export default function PrivateRoute({ children, mustBeLoggedIn = true }) {
     console.log('Navigate to login');
     return <Navigate to="/login" />;
   }
-  if (isLoggedIn && mustBeLoggedIn) {
+  if (isLoggedIn && !mustBeLoggedIn) {
     console.log('Navigate to Home');
     return <Navigate to="/" />;
   }
