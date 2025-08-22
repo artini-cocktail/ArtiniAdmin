@@ -10,7 +10,8 @@ import { fShortenNumber } from 'src/utils/format-number';
 // ----------------------------------------------------------------------
 
 export default function AppWidgetSummary({ title, total, icon, color = 'primary', sx, ...other }) {
-  const { numberTotal } = other;
+  // Remove numberTotal from other props to avoid DOM warning
+  const { numberTotal, ...restProps } = other;
   return (
     <Card
       component={Stack}
@@ -22,13 +23,13 @@ export default function AppWidgetSummary({ title, total, icon, color = 'primary'
         borderRadius: 2,
         ...sx,
       }}
-      {...other}
+      {...restProps}
     >
       {icon && <Box sx={{ width: 64, height: 64 }}>{icon}</Box>}
 
       <Stack spacing={0.5}>
         <Typography variant="h4">{typeof total === 'number' ? fShortenNumber(total) : total}</Typography>
-        <Typography variant="subtitle3">{numberTotal}</Typography>
+        {numberTotal && <Typography variant="subtitle2">{numberTotal}</Typography>}
         <Typography variant="subtitle2" sx={{ color: 'text.disabled' }}>
           {title}
         </Typography>

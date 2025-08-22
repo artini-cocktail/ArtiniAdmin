@@ -1,66 +1,262 @@
-import { faker } from '@faker-js/faker';
 import { useState, useEffect } from 'react';
-import { query, getDocs, collection } from 'firebase/firestore';
+import { 
+  query, 
+  limit, 
+  where, 
+  orderBy, 
+  collection, 
+  onSnapshot 
+} from 'firebase/firestore';
 
+import Card from '@mui/material/Card';
+import Alert from '@mui/material/Alert';
+import Skeleton from '@mui/material/Skeleton';
 import Container from '@mui/material/Container';
 import Grid from '@mui/material/Unstable_Grid2';
 import Typography from '@mui/material/Typography';
 
 import { db } from 'src/services/firebase';
 
-// import Iconify from 'src/components/iconify';
-
-// import AppTasks from '../app-tasks';
 import AppNewsUpdate from '../app-news-update';
-// import AppOrderTimeline from '../app-order-timeline';
-// import AppCurrentVisits from '../app-current-visits';
-// import AppWebsiteVisits from '../app-website-visits';
 import AppWidgetSummary from '../app-widget-summary';
-// import AppTrafficBySite from '../app-traffic-by-site';
-// import AppCurrentSubject from '../app-current-subject';
-// import AppConversionRates from '../app-conversion-rates';
+import AppCocktailStats from '../app-cocktail-stats';
+import AppRecentCocktails from '../app-recent-cocktails';
 
 // ----------------------------------------------------------------------
 
 export default function AppView() {
-  const [listUser, setListUser] = useState(0);
-  const [listCocktails, setListCocktails] = useState(0);
-  const [mostLikedCocktail, setMostLikedCocktail] = useState("");
-  const [mostViewedCocktail, setMostViewedCocktail] = useState("");
+  // Loading states
+  const [loading, setLoading] = useState({
+    users: true,
+    cocktails: true,
+    articles: true,
+    stats: true
+  });
+  
+  // Error states
+  const [errors, setErrors] = useState({
+    users: false,
+    cocktails: false,
+    articles: false,
+    stats: false
+  });
+
+  // Data states
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalCocktails, setTotalCocktails] = useState(0);
+  const [mostLikedCocktail, setMostLikedCocktail] = useState(null);
+  const [mostViewedCocktail, setMostViewedCocktail] = useState(null);
+  const [recentCocktails, setRecentCocktails] = useState([]);
+  const [topLikedCocktails, setTopLikedCocktails] = useState([]);
+  const [topViewedCocktails, setTopViewedCocktails] = useState([]);
+  const [recentArticles, setRecentArticles] = useState([]);
+  const [cocktailStats, setCocktailStats] = useState({ types: [], glasses: [] });
 
   useEffect(() => {
-    fetchCocktails();
-    fetchUser();
+    const unsubscribers = [];
+
+    // Real-time listener for users count
+    const unsubUsers = onSnapshot(
+      collection(db, 'users'),
+      (snapshot) => {
+        setTotalUsers(snapshot.size);
+        setLoading(prev => ({ ...prev, users: false }));
+        setErrors(prev => ({ ...prev, users: false }));
+      },
+      (error) => {
+        console.error('Error fetching users:', error);
+        setErrors(prev => ({ ...prev, users: true }));
+        setLoading(prev => ({ ...prev, users: false }));
+      }
+    );
+    unsubscribers.push(unsubUsers);
+
+    // Real-time listener for cocktails
+    const unsubCocktails = onSnapshot(
+      collection(db, 'cocktails'),
+      (snapshot) => {
+        const cocktails = snapshot.docs.map((doc) => ({ 
+          id: doc.id, 
+          ...doc.data() 
+        }));
+        
+        setTotalCocktails(snapshot.size);
+        
+        // Filter cocktails with likes and views
+        const filteredCocktails = cocktails.filter(cocktail => 
+          cocktail.likes !== undefined && cocktail.views !== undefined
+        );
+
+        // Most liked cocktail
+        if (filteredCocktails.length > 0) {
+          const mostLiked = filteredCocktails.reduce((prev, current) => 
+            (prev.likes > current.likes) ? prev : current
+          );
+          setMostLikedCocktail({ 
+            ...mostLiked, 
+            likesText: `${mostLiked.likes} likes` 
+          });
+
+          // Most viewed cocktail
+          const mostViewed = filteredCocktails.reduce((prev, current) => 
+            (prev.views > current.views) ? prev : current
+          );
+          setMostViewedCocktail({ 
+            ...mostViewed, 
+            viewsText: `${mostViewed.views} views` 
+          });
+        }
+
+        // Calculate cocktail statistics
+        calculateCocktailStats(cocktails);
+        
+        setLoading(prev => ({ ...prev, cocktails: false, stats: false }));
+        setErrors(prev => ({ ...prev, cocktails: false, stats: false }));
+      },
+      (error) => {
+        console.error('Error fetching cocktails:', error);
+        setErrors(prev => ({ ...prev, cocktails: true, stats: true }));
+        setLoading(prev => ({ ...prev, cocktails: false, stats: false }));
+      }
+    );
+    unsubscribers.push(unsubCocktails);
+
+    // Real-time listener for recent cocktails
+    const unsubRecentCocktails = onSnapshot(
+      query(
+        collection(db, 'cocktails'),
+        orderBy('createdAt', 'desc'),
+        limit(5)
+      ),
+      (snapshot) => {
+        const cocktails = snapshot.docs
+          .map((doc) => ({ 
+            id: doc.id, 
+            ...doc.data() 
+          }))
+          .filter(cocktail => cocktail.createdAt); // Filter out cocktails without createdAt
+        setRecentCocktails(cocktails);
+      },
+      (error) => {
+        console.error('Error fetching recent cocktails:', error);
+      }
+    );
+    unsubscribers.push(unsubRecentCocktails);
+
+    // Real-time listener for top liked cocktails
+    const unsubTopLiked = onSnapshot(
+      query(
+        collection(db, 'cocktails'),
+        where('likes', '>', 0),
+        orderBy('likes', 'desc'),
+        limit(5)
+      ),
+      (snapshot) => {
+        const cocktails = snapshot.docs
+          .map((doc) => ({ 
+            id: doc.id, 
+            ...doc.data() 
+          }))
+          .filter(cocktail => cocktail.likes > 0); // Ensure likes exist
+        setTopLikedCocktails(cocktails);
+      },
+      (error) => {
+        console.error('Error fetching top liked cocktails:', error);
+      }
+    );
+    unsubscribers.push(unsubTopLiked);
+
+    // Real-time listener for top viewed cocktails
+    const unsubTopViewed = onSnapshot(
+      query(
+        collection(db, 'cocktails'),
+        where('views', '>', 0),
+        orderBy('views', 'desc'),
+        limit(5)
+      ),
+      (snapshot) => {
+        const cocktails = snapshot.docs
+          .map((doc) => ({ 
+            id: doc.id, 
+            ...doc.data() 
+          }))
+          .filter(cocktail => cocktail.views > 0); // Ensure views exist
+        setTopViewedCocktails(cocktails);
+      },
+      (error) => {
+        console.error('Error fetching top viewed cocktails:', error);
+      }
+    );
+    unsubscribers.push(unsubTopViewed);
+
+    // Real-time listener for modules (articles)
+    const unsubModules = onSnapshot(
+      query(
+        collection(db, 'modules'),
+        orderBy('createdAt', 'desc'),
+        limit(5)
+      ),
+      (snapshot) => {
+        const articles = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          postedAt: doc.data().createdAt || doc.data().updatedAt || new Date()
+        }));
+        setRecentArticles(articles);
+        setLoading(prev => ({ ...prev, articles: false }));
+        setErrors(prev => ({ ...prev, articles: false }));
+      },
+      (error) => {
+        console.error('Error fetching articles:', error);
+        setErrors(prev => ({ ...prev, articles: true }));
+        setLoading(prev => ({ ...prev, articles: false }));
+      }
+    );
+    unsubscribers.push(unsubModules);
+
+    // Cleanup function
+    return () => {
+      unsubscribers.forEach(unsubscribe => unsubscribe());
+    };
   }, []);
 
-  const fetchUser = async () => {
-    const userCollectionRef = collection(db, 'users'); // Get a reference to the 'users' collection
-    const q = query(userCollectionRef); // Create a query object, add filters if needed
-    const querySnapshot = await getDocs(q); // Use getDocs with the query object
-    setListUser(querySnapshot.size); // Assuming you want to set the number of documents
+  const calculateCocktailStats = (cocktails) => {
+    // Count by type
+    const typeCount = {};
+    const glassCount = {};
+    
+    cocktails.forEach(cocktail => {
+      if (cocktail.type) {
+        typeCount[cocktail.type] = (typeCount[cocktail.type] || 0) + 1;
+      }
+      if (cocktail.glass) {
+        glassCount[cocktail.glass] = (glassCount[cocktail.glass] || 0) + 1;
+      }
+    });
+
+    const totalCocktailsWithType = Object.values(typeCount).reduce((a, b) => a + b, 0);
+    const totalCocktailsWithGlass = Object.values(glassCount).reduce((a, b) => a + b, 0);
+
+    const types = Object.entries(typeCount)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5)
+      .map(([label, value]) => ({
+        label,
+        value,
+        percentage: totalCocktailsWithType > 0 ? (value / totalCocktailsWithType) * 100 : 0
+      }));
+
+    const glasses = Object.entries(glassCount)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5)
+      .map(([label, value]) => ({
+        label,
+        value,
+        percentage: totalCocktailsWithGlass > 0 ? (value / totalCocktailsWithGlass) * 100 : 0
+      }));
+
+    setCocktailStats({ types, glasses });
   };
-
-  const fetchCocktails = async () => {
-    const cocktailCollectionRef = collection(db, 'cocktails'); // Get a reference to the 'cocktails' collection
-    const q = query(cocktailCollectionRef); // Create a query object, add filters if needed
-    const querySnapshot = await getDocs(q); // Use getDocs with the query object
-    const cocktails = querySnapshot.docs.map((doc) => doc.data());
-    setListCocktails(querySnapshot.size); // Assuming you want to set the number of documents
-
-    // Filter out cocktails without "likes" and "views" fields
-    const filteredCocktails = cocktails.filter(cocktail => cocktail.likes && cocktail.views);
-
-    // get the cocktail with the most likes and set it to the state mostLikedCocktail and add 'likes' as a string
-    setMostLikedCocktail(filteredCocktails.reduce((prev, current) => (prev.likes > current.likes) ? prev : current));
-    setMostLikedCocktail(prev => ({ ...prev, likes: `${prev.likes} likes` }));
-
-    // get the cocktail with the most views and set it to the state mostViewedCocktail and add 'views' as a string
-    setMostViewedCocktail(filteredCocktails.reduce((prev, current) => (prev.views > current.views) ? prev : current));
-    setMostViewedCocktail(prev => ({ ...prev, views: `${prev.views} views` }));
-
-
-    console.log(querySnapshot.size); // Assuming you want to log the number of documents
-  }
 
   return (
     <Container maxWidth="xl">
@@ -68,209 +264,139 @@ export default function AppView() {
         Hi, Welcome back 👋
       </Typography>
 
+      {/* Global Error Alert */}
+      {(errors.users || errors.cocktails || errors.articles || errors.stats) && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          Some data could not be loaded. Please check your connection and try again.
+        </Alert>
+      )}
+
       <Grid container spacing={3}>
-
-
+        {/* Summary Widgets */}
         <Grid xs={12} sm={6} md={3}>
-          <AppWidgetSummary
-            title="Users Registered"
-            total={listUser}
-            color="info"
-            icon={<img alt="icon" src="/assets/icons/glass/ic_glass_users.png" />}
-          />
+          {loading.users ? (
+            <Card sx={{ p: 3, height: 140 }}>
+              <Skeleton variant="rectangular" height={64} sx={{ mb: 2 }} />
+              <Skeleton variant="text" height={24} sx={{ mb: 1 }} />
+              <Skeleton variant="text" height={20} />
+            </Card>
+          ) : (
+            <AppWidgetSummary
+              title="Users Registered"
+              total={totalUsers}
+              color="info"
+              icon={<img alt="icon" src="/assets/icons/glass/ic_glass_users.png" />}
+            />
+          )}
         </Grid>
 
         <Grid xs={12} sm={6} md={3}>
-          <AppWidgetSummary
-            title="Total Cocktails"
-            total={listCocktails}
-            color="warning"
-            icon={<img alt="icon" src="/assets/icons/glass/ic_whiskey.png" />}
-          />
+          {loading.cocktails ? (
+            <Card sx={{ p: 3, height: 140 }}>
+              <Skeleton variant="rectangular" height={64} sx={{ mb: 2 }} />
+              <Skeleton variant="text" height={24} sx={{ mb: 1 }} />
+              <Skeleton variant="text" height={20} />
+            </Card>
+          ) : (
+            <AppWidgetSummary
+              title="Total Cocktails"
+              total={totalCocktails}
+              color="warning"
+              icon={<img alt="icon" src="/assets/icons/glass/ic_whiskey.png" />}
+            />
+          )}
         </Grid>
 
         <Grid xs={12} sm={6} md={3}>
-          <AppWidgetSummary
-            title="Most Liked Cocktail"
-            total={mostLikedCocktail.name}
-            numberTotal={mostLikedCocktail.likes}
-            color="error"
-            icon={<img alt="icon" src={mostLikedCocktail.photo} />}
-          />
+          {loading.cocktails || !mostLikedCocktail ? (
+            <Card sx={{ p: 3, height: 140 }}>
+              <Skeleton variant="rectangular" height={64} sx={{ mb: 2 }} />
+              <Skeleton variant="text" height={24} sx={{ mb: 1 }} />
+              <Skeleton variant="text" height={20} />
+            </Card>
+          ) : (
+            <AppWidgetSummary
+              title="Most Liked Cocktail"
+              total={mostLikedCocktail.likes || 0}
+              numberTotal={mostLikedCocktail.name}
+              color="error"
+              icon={<img alt="icon" src={mostLikedCocktail.photo || '/assets/icons/glass/ic_whiskey.png'} style={{ width: 64, height: 64, borderRadius: '8px', objectFit: 'cover' }} />}
+            />
+          )}
         </Grid>
+        
         <Grid xs={12} sm={6} md={3}>
-          <AppWidgetSummary
-            title="Most Viewed Cocktail"
-            total={mostViewedCocktail.name}
-            numberTotal={mostViewedCocktail.views}
-            color="error"
-            icon={<img alt="icon" src={mostViewedCocktail.photo} />}
+          {loading.cocktails || !mostViewedCocktail ? (
+            <Card sx={{ p: 3, height: 140 }}>
+              <Skeleton variant="rectangular" height={64} sx={{ mb: 2 }} />
+              <Skeleton variant="text" height={24} sx={{ mb: 1 }} />
+              <Skeleton variant="text" height={20} />
+            </Card>
+          ) : (
+            <AppWidgetSummary
+              title="Most Viewed Cocktail"
+              total={mostViewedCocktail.views || 0}
+              numberTotal={mostViewedCocktail.name}
+              color="success"
+              icon={<img alt="icon" src={mostViewedCocktail.photo || '/assets/icons/glass/ic_whiskey.png'} style={{ width: 64, height: 64, borderRadius: '8px', objectFit: 'cover' }} />}
+            />
+          )}
+        </Grid>
+
+        {/* Recent Cocktails */}
+        <Grid xs={12} md={6} lg={4}>
+          <AppRecentCocktails
+            title="Recent Cocktails"
+            subheader="Latest cocktails added"
+            list={recentCocktails}
+            loading={loading.cocktails}
+            error={errors.cocktails}
           />
         </Grid>
-        <Grid xs={12} md={12} lg={12}>
+
+        {/* Top Liked Cocktails */}
+        <Grid xs={12} md={6} lg={4}>
+          <AppRecentCocktails
+            title="Top Liked Cocktails"
+            subheader="Most popular cocktails"
+            list={topLikedCocktails}
+            loading={loading.cocktails}
+            error={errors.cocktails}
+          />
+        </Grid>
+
+        {/* Top Viewed Cocktails */}
+        <Grid xs={12} md={6} lg={4}>
+          <AppRecentCocktails
+            title="Most Viewed Cocktails"
+            subheader="Trending cocktails"
+            list={topViewedCocktails}
+            loading={loading.cocktails}
+            error={errors.cocktails}
+          />
+        </Grid>
+
+        {/* Cocktail Statistics */}
+        <Grid xs={12} md={6} lg={4}>
+          <AppCocktailStats
+            title="Cocktail Statistics"
+            subheader="Distribution by type and glass"
+            data={cocktailStats}
+            loading={loading.stats}
+            error={errors.stats}
+          />
+        </Grid>
+
+        {/* Recent Articles */}
+        <Grid xs={12} md={12} lg={8}>
           <AppNewsUpdate
-            title="News Update"
-            list={[...Array(5)].map((_, index) => ({
-              id: faker.string.uuid(),
-              title: faker.person.jobTitle(),
-              description: faker.commerce.productDescription(),
-              image: `/assets/images/covers/cover_${index + 1}.jpg`,
-              postedAt: faker.date.recent(),
-            }))}
+            title="Recent Articles"
+            subheader="Latest articles from modules"
+            list={recentArticles}
+            loading={loading.articles}
+            error={errors.articles}
           />
         </Grid>
-        {/* 
-        <Grid xs={12} md={6} lg={8}>
-          <AppWebsiteVisits
-            title="Website Visits"
-            subheader="(+43%) than last year"
-            chart={{
-              labels: [
-                '01/01/2003',
-                '02/01/2003',
-                '03/01/2003',
-                '04/01/2003',
-                '05/01/2003',
-                '06/01/2003',
-                '07/01/2003',
-                '08/01/2003',
-                '09/01/2003',
-                '10/01/2003',
-                '11/01/2003',
-              ],
-              series: [
-                {
-                  name: 'Team A',
-                  type: 'column',
-                  fill: 'solid',
-                  data: [23, 11, 22, 27, 13, 22, 37, 21, 44, 22, 30],
-                },
-                {
-                  name: 'Team B',
-                  type: 'area',
-                  fill: 'gradient',
-                  data: [44, 55, 41, 67, 22, 43, 21, 41, 56, 27, 43],
-                },
-                {
-                  name: 'Team C',
-                  type: 'line',
-                  fill: 'solid',
-                  data: [30, 25, 36, 30, 45, 35, 64, 52, 59, 36, 39],
-                },
-              ],
-            }}
-          />
-        </Grid>
-
-        <Grid xs={12} md={6} lg={4}>
-          <AppCurrentVisits
-            title="Current Visits"
-            chart={{
-              series: [
-                { label: 'America', value: 4344 },
-                { label: 'Asia', value: 5435 },
-                { label: 'Europe', value: 1443 },
-                { label: 'Africa', value: 4443 },
-              ],
-            }}
-          />
-        </Grid>
-
-        <Grid xs={12} md={6} lg={8}>
-          <AppConversionRates
-            title="Conversion Rates"
-            subheader="(+43%) than last year"
-            chart={{
-              series: [
-                { label: 'Italy', value: 400 },
-                { label: 'Japan', value: 430 },
-                { label: 'China', value: 448 },
-                { label: 'Canada', value: 470 },
-                { label: 'France', value: 540 },
-                { label: 'Germany', value: 580 },
-                { label: 'South Korea', value: 690 },
-                { label: 'Netherlands', value: 1100 },
-                { label: 'United States', value: 1200 },
-                { label: 'United Kingdom', value: 1380 },
-              ],
-            }}
-          />
-        </Grid>
-
-        <Grid xs={12} md={6} lg={4}>
-          <AppCurrentSubject
-            title="Current Subject"
-            chart={{
-              categories: ['English', 'History', 'Physics', 'Geography', 'Chinese', 'Math'],
-              series: [
-                { name: 'Series 1', data: [80, 50, 30, 40, 100, 20] },
-                { name: 'Series 2', data: [20, 30, 40, 80, 20, 80] },
-                { name: 'Series 3', data: [44, 76, 78, 13, 43, 10] },
-              ],
-            }}
-          />
-        </Grid>
-*/}
-
-        {/* 
-        <Grid xs={12} md={6} lg={4}>
-          <AppOrderTimeline
-            title="Order Timeline"
-            list={[...Array(5)].map((_, index) => ({
-              id: faker.string.uuid(),
-              title: [
-                '1983, orders, $4220',
-                '12 Invoices have been paid',
-                'Order #37745 from September',
-                'New order placed #XF-2356',
-                'New order placed #XF-2346',
-              ][index],
-              type: `order${index + 1}`,
-              time: faker.date.past(),
-            }))}
-          />
-        </Grid>
-
-        <Grid xs={12} md={6} lg={4}>
-          <AppTrafficBySite
-            title="Traffic by Site"
-            list={[
-              {
-                name: 'FaceBook',
-                value: 323234,
-                icon: <Iconify icon="eva:facebook-fill" color="#1877F2" width={32} />,
-              },
-              {
-                name: 'Google',
-                value: 341212,
-                icon: <Iconify icon="eva:google-fill" color="#DF3E30" width={32} />,
-              },
-              {
-                name: 'Linkedin',
-                value: 411213,
-                icon: <Iconify icon="eva:linkedin-fill" color="#006097" width={32} />,
-              },
-              {
-                name: 'Twitter',
-                value: 443232,
-                icon: <Iconify icon="eva:twitter-fill" color="#1C9CEA" width={32} />,
-              },
-            ]}
-          />
-        </Grid>
-
-        <Grid xs={12} md={6} lg={8}>
-          <AppTasks
-            title="Tasks"
-            list={[
-              { id: '1', name: 'Create FireStone Logo' },
-              { id: '2', name: 'Add SCSS and JS files if required' },
-              { id: '3', name: 'Stakeholder Meeting' },
-              { id: '4', name: 'Scoping & Estimations' },
-              { id: '5', name: 'Sprint Showcase' },
-            ]}
-          />
-        </Grid> */}
       </Grid>
     </Container>
   );

@@ -1,5 +1,6 @@
 import LiquorIcon from '@mui/icons-material/Liquor';
 import SportsBarIcon from '@mui/icons-material/SportsBar';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 
 import SvgColor from 'src/components/svg-color';
 // ----------------------------------------------------------------------
@@ -28,6 +29,11 @@ const navConfig = [
     title: 'blog',
     path: '/blog',
     icon: icon('ic_blog'),
+  },
+  {
+    title: 'Moderation',
+    path: '/moderation',
+    icon: <VerifiedUserIcon />,
   },
   {
     title: 'create cocktail',
