@@ -33,6 +33,6 @@ export default defineConfig({
     port: 3030,
   },
   build: {
-    outDir: 'build',
+    outDir: 'dist', // dossier de sortie par défaut
   },
 });
