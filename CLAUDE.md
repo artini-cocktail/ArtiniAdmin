@@ -32,6 +32,7 @@ npm start
 ## Architecture
 
 ### Tech Stack
+
 - **Frontend**: React 18 with Vite
 - **UI Framework**: Material-UI (MUI) v5
 - **Routing**: React Router v6
@@ -66,17 +67,19 @@ src/
 ### Firebase Configuration
 
 Firebase services are initialized in `src/services/firebase.js`:
+
 - **Firestore** (`db`): Document database
 - **Authentication** (`auth`): User authentication
 - **Storage** (`storage`): File uploads
 
 Environment variables required (in `.env`):
-- `VITE_FIREBASE_API_KEY`
-- `VITE_FIREBASE_AUTH_DOMAIN`
-- `VITE_FIREBASE_PROJECT_ID`
-- `VITE_FIREBASE_STORAGE_BUCKET`
-- `VITE_FIREBASE_MESSAGING_SENDER_ID`
-- `VITE_FIREBASE_APP_ID`
+
+- `FIREBASE_API_KEY`
+- `FIREBASE_AUTH_DOMAIN`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_STORAGE_BUCKET`
+- `FIREBASE_MESSAGING_SENDER_ID`
+- `FIREBASE_APP_ID`
 
 ## Main Features & Routes
 
@@ -92,11 +95,13 @@ Environment variables required (in `.env`):
 ## Code Style & Conventions
 
 ### ESLint Configuration
+
 - Based on Airbnb style guide with modifications
 - Perfectionist plugin for import/export sorting
 - Prettier integration for formatting
 
 ### Import Order (enforced by ESLint)
+
 1. Built-in and external packages
 2. MUI components (`@mui/**`)
 3. Routes (`src/routes/**`)
@@ -107,6 +112,7 @@ Environment variables required (in `.env`):
 8. Other internal imports
 
 ### Component Patterns
+
 - Functional components with hooks
 - Material-UI components for all UI elements
 - Iconify for icons
