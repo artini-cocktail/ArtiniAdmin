@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { doc, updateDoc } from 'firebase/firestore';
 
@@ -23,13 +23,26 @@ import Iconify from 'src/components/iconify';
 
 export default function UserEditModal({ open, onClose, user, onSuccess }) {
   const [formData, setFormData] = useState({
-    displayName: user?.displayName || '',
-    email: user?.email || '',
-    admin: user?.admin || false,
-    isCompany: user?.isCompany || false,
-    isPaid: user?.isPaid || false,
+    displayName: '',
+    email: '',
+    admin: false,
+    isCompany: false,
+    isPaid: false,
   });
   const [loading, setLoading] = useState(false);
+
+  // Mettre à jour formData quand user change ou quand le modal s'ouvre
+  useEffect(() => {
+    if (user && open) {
+      setFormData({
+        displayName: user.displayName || '',
+        email: user.email || '',
+        admin: user.admin || false,
+        isCompany: user.isCompany || false,
+        isPaid: user.isPaid || false,
+      });
+    }
+  }, [user, open]);
 
   if (!user) return null;
 
@@ -45,11 +58,40 @@ export default function UserEditModal({ open, onClose, user, onSuccess }) {
     setLoading(true);
     try {
       const userRef = doc(db, 'users', user.id);
-      await updateDoc(userRef, formData);
       
-      if (onSuccess) {
-        onSuccess('Utilisateur mis à jour avec succès');
+      // Ne mettre à jour que les champs qui ont changé
+      const changedFields = {};
+      
+      if (formData.displayName !== (user.displayName || '')) {
+        changedFields.displayName = formData.displayName;
       }
+      if (formData.email !== (user.email || '')) {
+        changedFields.email = formData.email;
+      }
+      if (formData.admin !== (user.admin || false)) {
+        changedFields.admin = formData.admin;
+      }
+      if (formData.isCompany !== (user.isCompany || false)) {
+        changedFields.isCompany = formData.isCompany;
+      }
+      if (formData.isPaid !== (user.isPaid || false)) {
+        changedFields.isPaid = formData.isPaid;
+      }
+
+      // Ajouter un timestamp de mise à jour si des changements sont présents
+      if (Object.keys(changedFields).length > 0) {
+        changedFields.updatedAt = new Date();
+        await updateDoc(userRef, changedFields);
+        
+        if (onSuccess) {
+          onSuccess('Utilisateur mis à jour avec succès');
+        }
+      } else {
+        if (onSuccess) {
+          onSuccess('Aucune modification détectée');
+        }
+      }
+      
       onClose();
     } catch (error) {
       console.error('Error updating user:', error);

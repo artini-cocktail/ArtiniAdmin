@@ -1,4 +1,5 @@
 import LiquorIcon from '@mui/icons-material/Liquor';
+import CategoryIcon from '@mui/icons-material/Category';
 import SportsBarIcon from '@mui/icons-material/SportsBar';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 
@@ -39,6 +40,11 @@ const navConfig = [
     title: 'create cocktail',
     path: '/create-cocktail',
     icon: <LiquorIcon />,
+  },
+  {
+    title: 'Catégories',
+    path: '/categories',
+    icon: <CategoryIcon />,
   },
   {
     title: 'login',

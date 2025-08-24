@@ -17,6 +17,7 @@ export const ModerationPage = lazy(() => import('src/pages/moderation'));
 export const CreateArticleView = lazy(() =>
   import('src/sections/create-article/view/create-article-view')
 );
+export const CategoriesPage = lazy(() => import('src/pages/categories'));
 
 // ----------------------------------------------------------------------
 
@@ -46,6 +47,7 @@ export default function Router() {
             { path: 'create-cocktail', element: <CreateCocktailView /> },
             { path: 'view-cocktail', element: <ViewCocktailView /> },
             { path: 'create-article', element: <CreateArticleView /> },
+            { path: 'categories', element: <CategoriesPage /> },
           ],
         },
       ],
