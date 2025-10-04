@@ -1,6 +1,7 @@
 import LiquorIcon from '@mui/icons-material/Liquor';
 import CategoryIcon from '@mui/icons-material/Category';
 import SportsBarIcon from '@mui/icons-material/SportsBar';
+import TranslateIcon from '@mui/icons-material/Translate';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 
 import SvgColor from 'src/components/svg-color';
@@ -45,6 +46,11 @@ const navConfig = [
     title: 'Catégories',
     path: '/categories',
     icon: <CategoryIcon />,
+  },
+  {
+    title: 'Traductions',
+    path: '/translations',
+    icon: <TranslateIcon />,
   },
   {
     title: 'login',
