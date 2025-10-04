@@ -45,7 +45,47 @@ export async function translateText(text, targetLang, sourceLang = 'FR') {
 }
 
 /**
- * Traduit un objet de traductions de manière récursive
+ * Traduit un lot de textes en une seule requête
+ * @param {Array<string>} texts - Textes à traduire
+ * @param {string} targetLang - Langue cible
+ * @param {string} sourceLang - Langue source
+ * @returns {Promise<Array<string>>} - Textes traduits
+ */
+async function translateBatch(texts, targetLang, sourceLang = 'FR') {
+  if (texts.length === 0) return [];
+
+  try {
+    console.log(`🔄 Traduction batch de ${texts.length} textes vers ${targetLang}`);
+
+    const response = await fetch('/api/translate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        texts,
+        targetLang: targetLang.toUpperCase(),
+        sourceLang: sourceLang.toUpperCase(),
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Erreur réseau' }));
+      console.error('❌ Erreur API batch:', error);
+      throw new Error(error.error || 'Erreur lors de la traduction batch');
+    }
+
+    const data = await response.json();
+    console.log(`✅ Batch traduit: ${texts.length} textes`);
+    return data.translatedTexts;
+  } catch (error) {
+    console.error('❌ DeepL batch translation error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Traduit un objet de traductions de manière récursive avec batch
  * @param {Object} obj - Objet de traductions à traduire
  * @param {string} targetLang - Langue cible
  * @param {string} sourceLang - Langue source
@@ -53,56 +93,69 @@ export async function translateText(text, targetLang, sourceLang = 'FR') {
  * @returns {Promise<Object>} - Objet traduit
  */
 export async function translateObject(obj, targetLang, sourceLang = 'FR', onProgress = null) {
-  // Compter d'abord le nombre total de clés à traduire
-  const countKeys = (o) => {
-    let count = 0;
+  // Collecter tous les textes à traduire avec leurs chemins
+  const textsToTranslate = [];
+
+  const collectTexts = (o, path = []) => {
     // eslint-disable-next-line no-restricted-syntax
-    for (const value of Object.values(o)) {
+    for (const [key, value] of Object.entries(o)) {
       if (typeof value === 'string') {
-        count += 1;
+        textsToTranslate.push({ path: [...path, key], text: value });
       } else if (typeof value === 'object' && value !== null) {
-        count += countKeys(value);
+        collectTexts(value, [...path, key]);
       }
     }
-    return count;
   };
 
-  const totalKeys = countKeys(obj);
-  let processedKeys = 0;
+  collectTexts(obj);
 
-  const translateRecursive = async (o) => {
-    const result = {};
-    const entries = Object.entries(o);
+  const totalKeys = textsToTranslate.length;
+  console.log(`📊 Total de ${totalKeys} textes à traduire`);
 
-    // eslint-disable-next-line no-restricted-syntax
-    for (const [key, value] of entries) {
-      if (typeof value === 'string') {
-        try {
-          // eslint-disable-next-line no-await-in-loop
-          result[key] = await translateText(value, targetLang, sourceLang);
-          processedKeys += 1;
-          if (onProgress) {
-            onProgress(processedKeys, totalKeys);
-          }
-          // Délai plus long pour éviter les rate limits (500ms au lieu de 100ms)
-          // eslint-disable-next-line no-await-in-loop
-          await new Promise(resolve => { setTimeout(resolve, 500); });
-        } catch (error) {
-          console.error(`Erreur lors de la traduction de "${key}":`, error);
-          result[key] = value; // Garder la valeur originale en cas d'erreur
-        }
-      } else if (typeof value === 'object' && value !== null) {
+  // Traduire par lots de 50 textes (limite DeepL)
+  const BATCH_SIZE = 50;
+  const translatedTexts = [];
+
+  // eslint-disable-next-line no-restricted-syntax
+  for (let i = 0; i < textsToTranslate.length; i += BATCH_SIZE) {
+    const batch = textsToTranslate.slice(i, i + BATCH_SIZE);
+    const texts = batch.map(item => item.text);
+
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const translations = await translateBatch(texts, targetLang, sourceLang);
+      translatedTexts.push(...translations);
+
+      if (onProgress) {
+        const processed = Math.min(i + BATCH_SIZE, totalKeys);
+        onProgress(processed, totalKeys);
+      }
+
+      // Petit délai entre les batches pour éviter les rate limits
+      if (i + BATCH_SIZE < textsToTranslate.length) {
         // eslint-disable-next-line no-await-in-loop
-        result[key] = await translateRecursive(value);
-      } else {
-        result[key] = value;
+        await new Promise(resolve => { setTimeout(resolve, 1000); });
       }
+    } catch (error) {
+      console.error(`Erreur lors de la traduction du batch ${i / BATCH_SIZE + 1}:`, error);
+      // En cas d'erreur, garder les valeurs originales pour ce batch
+      translatedTexts.push(...texts);
     }
+  }
 
-    return result;
-  };
+  // Reconstruire l'objet avec les traductions
+  const result = JSON.parse(JSON.stringify(obj)); // Deep clone
 
-  return translateRecursive(obj);
+  textsToTranslate.forEach((item, index) => {
+    let current = result;
+    // eslint-disable-next-line no-restricted-syntax
+    for (let i = 0; i < item.path.length - 1; i += 1) {
+      current = current[item.path[i]];
+    }
+    current[item.path[item.path.length - 1]] = translatedTexts[index];
+  });
+
+  return result;
 }
 
 /**
