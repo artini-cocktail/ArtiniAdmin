@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { useState, useEffect } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 
 import Box from '@mui/material/Box';
@@ -86,10 +86,8 @@ export default function UserEditModal({ open, onClose, user, onSuccess }) {
         if (onSuccess) {
           onSuccess('Utilisateur mis à jour avec succès');
         }
-      } else {
-        if (onSuccess) {
-          onSuccess('Aucune modification détectée');
-        }
+      } else if (onSuccess) {
+        onSuccess('Aucune modification détectée');
       }
       
       onClose();

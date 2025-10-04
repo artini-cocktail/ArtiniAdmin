@@ -14,29 +14,46 @@ import Iconify from 'src/components/iconify';
 export default function StepsManager({ steps = [], onChange, ...other }) {
   const theme = useTheme();
 
-  const handleStepChange = (index, value) => {
-    const updatedSteps = steps.map((step, i) =>
-      i === index ? { ...step, text: value } : step
+  // Normalize steps to ensure they all have IDs
+  const normalizedSteps = steps.map((step, index) => {
+    if (!step.id) {
+      return {
+        ...step,
+        id: `step-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`
+      };
+    }
+    return step;
+  });
+
+  const handleStepChange = (id, value) => {
+    const updatedSteps = normalizedSteps.map((step) =>
+      step.id === id ? { ...step, text: value } : step
     );
     onChange(updatedSteps);
   };
 
   const handleAddStep = () => {
-    const newStep = { text: '' };
-    onChange([...steps, newStep]);
+    const newStep = {
+      id: `step-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      text: ''
+    };
+    onChange([...normalizedSteps, newStep]);
   };
 
-  const handleRemoveStep = (index) => {
-    const updatedSteps = steps.filter((_, i) => i !== index);
+  const handleRemoveStep = (id) => {
+    const updatedSteps = normalizedSteps.filter((step) => step.id !== id);
     onChange(updatedSteps);
   };
 
-  const handleMoveStep = (fromIndex, toIndex) => {
-    if (toIndex < 0 || toIndex >= steps.length) return;
-    
-    const updatedSteps = [...steps];
-    const [movedStep] = updatedSteps.splice(fromIndex, 1);
-    updatedSteps.splice(toIndex, 0, movedStep);
+  const handleMoveStep = (id, direction) => {
+    const currentIndex = normalizedSteps.findIndex((step) => step.id === id);
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+    if (targetIndex < 0 || targetIndex >= normalizedSteps.length) return;
+
+    const updatedSteps = [...normalizedSteps];
+    const [movedStep] = updatedSteps.splice(currentIndex, 1);
+    updatedSteps.splice(targetIndex, 0, movedStep);
     onChange(updatedSteps);
   };
 
@@ -44,9 +61,9 @@ export default function StepsManager({ steps = [], onChange, ...other }) {
     <Box {...other}>
       <Stack spacing={2}>
         <AnimatePresence>
-          {steps.map((step, index) => (
+          {normalizedSteps.map((step, index) => (
             <motion.div
-              key={index}
+              key={step.id || `step-${index}`}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
@@ -100,7 +117,7 @@ export default function StepsManager({ steps = [], onChange, ...other }) {
                     label={`Étape ${index + 1}`}
                     placeholder="Décrivez cette étape de préparation..."
                     value={step.text}
-                    onChange={(e) => handleStepChange(index, e.target.value)}
+                    onChange={(e) => handleStepChange(step.id, e.target.value)}
                     sx={{
                       mt: 1,
                       '& .MuiOutlinedInput-root': {
@@ -109,10 +126,10 @@ export default function StepsManager({ steps = [], onChange, ...other }) {
                     }}
                   />
 
-                  <Stack 
+                  <Stack
                     className="step-actions"
-                    spacing={0.5} 
-                    sx={{ 
+                    spacing={0.5}
+                    sx={{
                       opacity: 0.7,
                       transition: 'opacity 0.2s ease-in-out',
                       mt: 1,
@@ -123,7 +140,7 @@ export default function StepsManager({ steps = [], onChange, ...other }) {
                       <IconButton
                         size="small"
                         disabled={index === 0}
-                        onClick={() => handleMoveStep(index, index - 1)}
+                        onClick={() => handleMoveStep(step.id, 'up')}
                         sx={{
                           bgcolor: alpha(theme.palette.info.main, 0.1),
                           '&:hover': {
@@ -142,8 +159,8 @@ export default function StepsManager({ steps = [], onChange, ...other }) {
                     <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                       <IconButton
                         size="small"
-                        disabled={index === steps.length - 1}
-                        onClick={() => handleMoveStep(index, index + 1)}
+                        disabled={index === normalizedSteps.length - 1}
+                        onClick={() => handleMoveStep(step.id, 'down')}
                         sx={{
                           bgcolor: alpha(theme.palette.info.main, 0.1),
                           '&:hover': {
@@ -163,7 +180,7 @@ export default function StepsManager({ steps = [], onChange, ...other }) {
                       <IconButton
                         size="small"
                         color="error"
-                        onClick={() => handleRemoveStep(index)}
+                        onClick={() => handleRemoveStep(step.id)}
                         sx={{
                           bgcolor: alpha(theme.palette.error.main, 0.1),
                           '&:hover': {
@@ -208,7 +225,7 @@ export default function StepsManager({ steps = [], onChange, ...other }) {
           </Button>
         </motion.div>
 
-        {steps.length === 0 && (
+        {normalizedSteps.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

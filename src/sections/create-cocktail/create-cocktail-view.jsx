@@ -69,8 +69,16 @@ export default function CreateCocktailView() {
       glass: "Martini",
       degree: "Mocktail",
       ice: "Without",
-      ingredients: [{ value: 0, unit: "ml", text: "" }],
-      steps: [{ text: "" }],
+      ingredients: [{
+        id: `ingredient-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        value: 0,
+        unit: "ml",
+        text: ""
+      }],
+      steps: [{
+        id: `step-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        text: ""
+      }],
       description: "",
       photo: "",
       Validated: false,

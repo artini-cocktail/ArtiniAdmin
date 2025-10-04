@@ -18,6 +18,7 @@ export const CreateArticleView = lazy(() =>
   import('src/sections/create-article/view/create-article-view')
 );
 export const CategoriesPage = lazy(() => import('src/pages/categories'));
+export const TranslationsPage = lazy(() => import('src/pages/translations'));
 
 // ----------------------------------------------------------------------
 
@@ -48,6 +49,7 @@ export default function Router() {
             { path: 'view-cocktail', element: <ViewCocktailView /> },
             { path: 'create-article', element: <CreateArticleView /> },
             { path: 'categories', element: <CategoriesPage /> },
+            { path: 'translations', element: <TranslationsPage /> },
           ],
         },
       ],

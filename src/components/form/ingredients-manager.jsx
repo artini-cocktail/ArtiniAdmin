@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -53,27 +52,38 @@ const PLURAL_UNITS = [
 
 export default function IngredientsManager({ ingredients = [], onChange, ...other }) {
   const theme = useTheme();
-  const [expandedIndex, setExpandedIndex] = useState(null);
 
-  const handleIngredientChange = (index, field, value) => {
-    const updatedIngredients = ingredients.map((ingredient, i) =>
-      i === index ? { ...ingredient, [field]: value } : ingredient
+  // Normalize ingredients to ensure they all have IDs
+  const normalizedIngredients = ingredients.map((ingredient, index) => {
+    if (!ingredient.id) {
+      return {
+        ...ingredient,
+        id: `ingredient-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`
+      };
+    }
+    return ingredient;
+  });
+
+  const handleIngredientChange = (id, field, value) => {
+    const updatedIngredients = normalizedIngredients.map((ingredient) =>
+      ingredient.id === id ? { ...ingredient, [field]: value } : ingredient
     );
     onChange(updatedIngredients);
   };
 
   const handleAddIngredient = () => {
-    const newIngredient = { value: 0, unit: 'ml', text: '' };
-    onChange([...ingredients, newIngredient]);
-    setExpandedIndex(ingredients.length);
+    const newIngredient = {
+      id: `ingredient-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      value: 0,
+      unit: 'ml',
+      text: ''
+    };
+    onChange([...normalizedIngredients, newIngredient]);
   };
 
-  const handleRemoveIngredient = (index) => {
-    const updatedIngredients = ingredients.filter((_, i) => i !== index);
+  const handleRemoveIngredient = (id) => {
+    const updatedIngredients = normalizedIngredients.filter((ingredient) => ingredient.id !== id);
     onChange(updatedIngredients);
-    if (expandedIndex === index) {
-      setExpandedIndex(null);
-    }
   };
 
   const getAvailableUnits = (quantity) => {
@@ -86,9 +96,9 @@ export default function IngredientsManager({ ingredients = [], onChange, ...othe
     <Box {...other}>
       <Stack spacing={2}>
         <AnimatePresence>
-          {ingredients.map((ingredient, index) => (
+          {normalizedIngredients.map((ingredient, index) => (
             <motion.div
-              key={index}
+              key={ingredient.id || `ingredient-${index}`}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
@@ -115,7 +125,7 @@ export default function IngredientsManager({ ingredients = [], onChange, ...othe
                       type="number"
                       label="Quantité"
                       value={ingredient.value}
-                      onChange={(e) => handleIngredientChange(index, 'value', parseInt(e.target.value, 10) || 0)}
+                      onChange={(e) => handleIngredientChange(ingredient.id, 'value', parseInt(e.target.value, 10) || 0)}
                       inputProps={{ min: 0, step: 0.1 }}
                       sx={{
                         '& .MuiOutlinedInput-root': {
@@ -124,13 +134,13 @@ export default function IngredientsManager({ ingredients = [], onChange, ...othe
                       }}
                     />
                   </Grid>
-                  
+
                   <Grid item xs={12} sm={2}>
                     <Autocomplete
                       size="small"
                       value={getAvailableUnits(ingredient.value).find(unit => unit.value === ingredient.unit) || null}
                       onChange={(event, newValue) => {
-                        handleIngredientChange(index, 'unit', newValue?.value || 'ml');
+                        handleIngredientChange(ingredient.id, 'unit', newValue?.value || 'ml');
                       }}
                       options={getAvailableUnits(ingredient.value)}
                       getOptionLabel={(option) => option.label}
@@ -147,17 +157,17 @@ export default function IngredientsManager({ ingredients = [], onChange, ...othe
                       )}
                     />
                   </Grid>
-                  
+
                   <Grid item xs={12} sm={7}>
                     <Autocomplete
                       size="small"
                       freeSolo
                       value={ingredient.text}
                       onChange={(event, newValue) => {
-                        handleIngredientChange(index, 'text', newValue || '');
+                        handleIngredientChange(ingredient.id, 'text', newValue || '');
                       }}
                       onInputChange={(event, newInputValue) => {
-                        handleIngredientChange(index, 'text', newInputValue);
+                        handleIngredientChange(ingredient.id, 'text', newInputValue);
                       }}
                       options={COMMON_INGREDIENTS}
                       renderInput={(params) => (
@@ -174,7 +184,7 @@ export default function IngredientsManager({ ingredients = [], onChange, ...othe
                       )}
                     />
                   </Grid>
-                  
+
                   <Grid item xs={12} sm={1}>
                     <motion.div
                       whileHover={{ scale: 1.1 }}
@@ -182,7 +192,7 @@ export default function IngredientsManager({ ingredients = [], onChange, ...othe
                     >
                       <IconButton
                         color="error"
-                        onClick={() => handleRemoveIngredient(index)}
+                        onClick={() => handleRemoveIngredient(ingredient.id)}
                         sx={{
                           bgcolor: alpha(theme.palette.error.main, 0.1),
                           '&:hover': {
@@ -227,7 +237,7 @@ export default function IngredientsManager({ ingredients = [], onChange, ...othe
           </Button>
         </motion.div>
 
-        {ingredients.length === 0 && (
+        {normalizedIngredients.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
