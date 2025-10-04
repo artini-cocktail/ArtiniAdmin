@@ -1,48 +1,39 @@
 // DeepL Translation Utility
-// Pour utiliser cette fonctionnalité, ajoutez votre clé API DeepL dans .env:
-// VITE_DEEPL_API_KEY=votre_clé_ici
-
-const DEEPL_API_KEY = import.meta.env.VITE_DEEPL_API_KEY;
-const DEEPL_API_URL = 'https://api-free.deepl.com/v2/translate'; // ou https://api.deepl.com/v2/translate pour la version payante
+// Utilise une fonction serverless Vercel pour éviter les problèmes CORS
+// La clé API DeepL doit être configurée dans les variables d'environnement Vercel
 
 /**
- * Traduit un texte avec DeepL
+ * Traduit un texte avec DeepL via notre API serverless
  * @param {string} text - Texte à traduire
  * @param {string} targetLang - Langue cible (ex: 'EN', 'ES', 'DE', 'IT')
  * @param {string} sourceLang - Langue source (ex: 'FR') - optionnel
  * @returns {Promise<string>} - Texte traduit
  */
 export async function translateText(text, targetLang, sourceLang = 'FR') {
-  if (!DEEPL_API_KEY) {
-    throw new Error('Clé API DeepL non configurée. Ajoutez VITE_DEEPL_API_KEY dans votre fichier .env');
-  }
-
   if (!text || text.trim() === '') {
     return text;
   }
 
   try {
-    const response = await fetch(DEEPL_API_URL, {
+    const response = await fetch('/api/translate', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
-      body: new URLSearchParams({
-        auth_key: DEEPL_API_KEY,
+      body: JSON.stringify({
         text,
-        target_lang: targetLang.toUpperCase(),
-        source_lang: sourceLang.toUpperCase(),
-        preserve_formatting: '1'
+        targetLang: targetLang.toUpperCase(),
+        sourceLang: sourceLang.toUpperCase(),
       })
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Erreur lors de la traduction');
+      throw new Error(error.error || 'Erreur lors de la traduction');
     }
 
     const data = await response.json();
-    return data.translations[0].text;
+    return data.translatedText;
   } catch (error) {
     console.error('DeepL translation error:', error);
     throw error;
