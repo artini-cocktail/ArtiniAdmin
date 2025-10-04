@@ -15,6 +15,8 @@ export async function translateText(text, targetLang, sourceLang = 'FR') {
   }
 
   try {
+    console.log(`🔄 Traduction: "${text.substring(0, 50)}..." vers ${targetLang}`);
+
     const response = await fetch('/api/translate', {
       method: 'POST',
       headers: {
@@ -28,14 +30,16 @@ export async function translateText(text, targetLang, sourceLang = 'FR') {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json().catch(() => ({ error: 'Erreur réseau' }));
+      console.error('❌ Erreur API:', error);
       throw new Error(error.error || 'Erreur lors de la traduction');
     }
 
     const data = await response.json();
+    console.log(`✅ Traduit: "${data.translatedText.substring(0, 50)}..."`);
     return data.translatedText;
   } catch (error) {
-    console.error('DeepL translation error:', error);
+    console.error('❌ DeepL translation error:', error);
     throw error;
   }
 }
@@ -49,36 +53,56 @@ export async function translateText(text, targetLang, sourceLang = 'FR') {
  * @returns {Promise<Object>} - Objet traduit
  */
 export async function translateObject(obj, targetLang, sourceLang = 'FR', onProgress = null) {
-  const result = {};
-  const entries = Object.entries(obj);
-  let processed = 0;
-
-  // eslint-disable-next-line no-restricted-syntax
-  for (const [key, value] of entries) {
-    if (typeof value === 'string') {
-      try {
-        // eslint-disable-next-line no-await-in-loop
-        result[key] = await translateText(value, targetLang, sourceLang);
-        processed += 1;
-        if (onProgress) {
-          onProgress(processed, entries.length);
-        }
-        // Petit délai pour éviter de dépasser les limites de taux de l'API
-        // eslint-disable-next-line no-await-in-loop
-        await new Promise(resolve => { setTimeout(resolve, 100); });
-      } catch (error) {
-        console.error(`Erreur lors de la traduction de "${key}":`, error);
-        result[key] = value; // Garder la valeur originale en cas d'erreur
+  // Compter d'abord le nombre total de clés à traduire
+  const countKeys = (o) => {
+    let count = 0;
+    // eslint-disable-next-line no-restricted-syntax
+    for (const value of Object.values(o)) {
+      if (typeof value === 'string') {
+        count += 1;
+      } else if (typeof value === 'object' && value !== null) {
+        count += countKeys(value);
       }
-    } else if (typeof value === 'object' && value !== null) {
-      // eslint-disable-next-line no-await-in-loop
-      result[key] = await translateObject(value, targetLang, sourceLang, onProgress);
-    } else {
-      result[key] = value;
     }
-  }
+    return count;
+  };
 
-  return result;
+  const totalKeys = countKeys(obj);
+  let processedKeys = 0;
+
+  const translateRecursive = async (o) => {
+    const result = {};
+    const entries = Object.entries(o);
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const [key, value] of entries) {
+      if (typeof value === 'string') {
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          result[key] = await translateText(value, targetLang, sourceLang);
+          processedKeys += 1;
+          if (onProgress) {
+            onProgress(processedKeys, totalKeys);
+          }
+          // Délai plus long pour éviter les rate limits (500ms au lieu de 100ms)
+          // eslint-disable-next-line no-await-in-loop
+          await new Promise(resolve => { setTimeout(resolve, 500); });
+        } catch (error) {
+          console.error(`Erreur lors de la traduction de "${key}":`, error);
+          result[key] = value; // Garder la valeur originale en cas d'erreur
+        }
+      } else if (typeof value === 'object' && value !== null) {
+        // eslint-disable-next-line no-await-in-loop
+        result[key] = await translateRecursive(value);
+      } else {
+        result[key] = value;
+      }
+    }
+
+    return result;
+  };
+
+  return translateRecursive(obj);
 }
 
 /**

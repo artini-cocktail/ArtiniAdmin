@@ -157,14 +157,19 @@ export default function TranslationsView() {
       toast.success(`Traduction terminée ! ${processedKeys} clés traduites`);
     } catch (error) {
       console.error('Translation error:', error);
-      if (error.message.includes('Clé API')) {
-        toast.error('Veuillez configurer votre clé API DeepL dans le fichier .env (VITE_DEEPL_API_KEY)');
+      if (error.message.includes('Clé API') || error.message.includes('not configured')) {
+        toast.error('Clé API DeepL non configurée dans les variables d\'environnement Vercel');
+      } else if (error.message.includes('429') || error.message.includes('rate limit')) {
+        toast.error('Limite de requêtes DeepL atteinte. Attendez quelques minutes.');
       } else {
-        toast.error('Erreur lors de la traduction automatique');
+        toast.error(`Erreur: ${error.message}`);
       }
     } finally {
       setIsTranslating(false);
-      setTranslationProgress(0);
+      // Attendre un peu avant de réinitialiser la progression
+      setTimeout(() => {
+        setTranslationProgress(0);
+      }, 2000);
     }
   };
 
