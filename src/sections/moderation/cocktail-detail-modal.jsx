@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
+
 import { httpsCallable } from 'firebase/functions';
+import { toast } from 'react-toastify';
 
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -39,6 +40,15 @@ export default function CocktailDetailModal({
   const [baseLikes, setBaseLikes] = useState(0);
   const [isUpdatingLikes, setIsUpdatingLikes] = useState(false);
 
+  // Initialize baseLikes when cocktail changes
+  useEffect(() => {
+    if (cocktail?.baseLikes !== undefined) {
+      setBaseLikes(cocktail.baseLikes);
+    } else {
+      setBaseLikes(0);
+    }
+  }, [cocktail]);
+
   if (!cocktail) return null;
 
   // Extract cocktail properties
@@ -55,15 +65,6 @@ export default function CocktailDetailModal({
   const rejected = cocktail?.rejected === true;
   const views = cocktail?.views || 0;
   const likes = cocktail?.likes || 0;
-
-  // Initialize baseLikes when cocktail changes
-  useEffect(() => {
-    if (cocktail?.baseLikes !== undefined) {
-      setBaseLikes(cocktail.baseLikes);
-    } else {
-      setBaseLikes(0);
-    }
-  }, [cocktail]);
 
   const handleUpdateBaseLikes = async () => {
     if (!cocktail?.id) return;
