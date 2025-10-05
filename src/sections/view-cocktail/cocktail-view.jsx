@@ -72,6 +72,7 @@ export default function CocktailView() {
       steps: [{ text: "" }],
       description: "",
       photo: "",
+      baseLikes: 0,
       Validated: false,
       publisher: "r119v4QX3eMfWIhHRsesPp53t7X2"
     }
@@ -408,12 +409,12 @@ export default function CocktailView() {
                           p: 1.5,
                           borderRadius: 2,
                           border: `2px solid ${
-                            field.value === option.value 
-                              ? theme.palette.primary.main 
+                            field.value === option.value
+                              ? theme.palette.primary.main
                               : alpha(theme.palette.grey[500], 0.2)
                           }`,
-                          bgcolor: field.value === option.value 
-                            ? alpha(theme.palette.primary.main, 0.1) 
+                          bgcolor: field.value === option.value
+                            ? alpha(theme.palette.primary.main, 0.1)
                             : 'transparent',
                           cursor: 'pointer',
                           transition: 'all 0.2s ease-in-out',
@@ -433,6 +434,50 @@ export default function CocktailView() {
                   </Stack>
                 )}
               />
+            </Grid>
+
+            {/* Base Likes Field */}
+            <Grid item xs={12}>
+              <Box
+                sx={{
+                  mt: 2,
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: alpha(theme.palette.warning.main, 0.08),
+                  border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                }}
+              >
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                  <Iconify icon="eva:heart-fill" width={20} sx={{ color: 'warning.main' }} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    Likes de base
+                  </Typography>
+                </Stack>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                  Nombre de likes de base pour booster la popularité du cocktail (optionnel)
+                </Typography>
+                <Controller
+                  name="baseLikes"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      type="number"
+                      label="Nombre de likes de base"
+                      placeholder="0"
+                      size="small"
+                      inputProps={{ min: 0, step: 1 }}
+                      sx={{
+                        width: { xs: '100%', sm: 200 },
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: 2,
+                        },
+                      }}
+                      helperText="Les likes affichés = likes réels + baseLikes"
+                    />
+                  )}
+                />
+              </Box>
             </Grid>
           </Grid>
         </FormSection>
