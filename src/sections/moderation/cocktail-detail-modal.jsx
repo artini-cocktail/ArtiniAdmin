@@ -1,5 +1,7 @@
-import { useState } from 'react';
 import PropTypes from 'prop-types';
+import { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
+import { httpsCallable } from 'firebase/functions';
 
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -9,12 +11,16 @@ import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import { alpha, useTheme } from '@mui/material/styles';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
+
+import { functions } from 'src/services/firebase';
 
 import Iconify from 'src/components/iconify';
 
@@ -30,6 +36,8 @@ export default function CocktailDetailModal({
 }) {
   const theme = useTheme();
   const [imageError, setImageError] = useState(false);
+  const [baseLikes, setBaseLikes] = useState(0);
+  const [isUpdatingLikes, setIsUpdatingLikes] = useState(false);
 
   if (!cocktail) return null;
 
@@ -47,6 +55,35 @@ export default function CocktailDetailModal({
   const rejected = cocktail?.rejected === true;
   const views = cocktail?.views || 0;
   const likes = cocktail?.likes || 0;
+
+  // Initialize baseLikes when cocktail changes
+  useEffect(() => {
+    if (cocktail?.baseLikes !== undefined) {
+      setBaseLikes(cocktail.baseLikes);
+    } else {
+      setBaseLikes(0);
+    }
+  }, [cocktail]);
+
+  const handleUpdateBaseLikes = async () => {
+    if (!cocktail?.id) return;
+
+    setIsUpdatingLikes(true);
+    try {
+      const setBaseLikesFunc = httpsCallable(functions, 'setBaseLikes');
+      await setBaseLikesFunc({
+        cocktailId: cocktail.id,
+        baseLikes: parseInt(baseLikes, 10) || 0
+      });
+
+      toast.success(`Likes de base mis à jour: ${baseLikes}`);
+    } catch (error) {
+      console.error('Error updating baseLikes:', error);
+      toast.error('Erreur lors de la mise à jour des likes');
+    } finally {
+      setIsUpdatingLikes(false);
+    }
+  };
 
   // Get status info
   const getStatus = () => {
@@ -247,6 +284,51 @@ export default function CocktailDetailModal({
               </Stack>
             </Grid>
           </Grid>
+
+          <Divider sx={{ my: 3 }} />
+
+          {/* Base Likes Management */}
+          <Box
+            sx={{
+              p: 2,
+              borderRadius: 2,
+              bgcolor: alpha(theme.palette.warning.main, 0.08),
+              border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+            }}
+          >
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+              <Iconify icon="eva:heart-fill" width={20} sx={{ color: 'warning.main' }} />
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                Gestion des likes de base
+              </Typography>
+            </Stack>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+              Définir un nombre de likes de base pour booster la popularité du cocktail
+            </Typography>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <TextField
+                size="small"
+                type="number"
+                label="Likes de base"
+                value={baseLikes}
+                onChange={(e) => setBaseLikes(e.target.value)}
+                inputProps={{ min: 0 }}
+                sx={{ width: 150 }}
+              />
+              <LoadingButton
+                variant="contained"
+                color="warning"
+                onClick={handleUpdateBaseLikes}
+                loading={isUpdatingLikes}
+                startIcon={<Iconify icon="eva:save-fill" />}
+              >
+                Mettre à jour
+              </LoadingButton>
+              <Typography variant="body2" color="text.secondary">
+                Likes totaux affichés: <strong>{likes + parseInt(baseLikes, 10) || likes}</strong>
+              </Typography>
+            </Stack>
+          </Box>
 
           <Divider sx={{ my: 3 }} />
 
