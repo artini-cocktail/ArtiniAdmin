@@ -58,8 +58,7 @@ export const cocktailValidationSchema = Yup.object().shape({
   
   description: Yup.string()
     .required('La description est requise')
-    .min(20, 'La description doit contenir au moins 20 caractères')
-    .max(500, 'La description ne peut pas dépasser 500 caractères'),
+    .min(20, 'La description doit contenir au moins 20 caractères'),
   
   photo: Yup.string()
     .required('Une photo est requise'),
