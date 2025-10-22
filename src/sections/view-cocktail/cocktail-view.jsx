@@ -4,22 +4,28 @@ import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { toast, ToastContainer } from 'react-toastify';
 import { useState, useEffect, useCallback } from 'react';
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { ref, getDownloadURL, uploadBytesResumable } from "firebase/storage";
 
+import { alpha, useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import Grid from '@mui/material/Grid';
 import Chip from '@mui/material/Chip';
+import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import Autocomplete from '@mui/material/Autocomplete';
+import DialogTitle from '@mui/material/DialogTitle';
 import LoadingButton from '@mui/lab/LoadingButton';
 import ToggleButton from '@mui/material/ToggleButton';
-import Autocomplete from '@mui/material/Autocomplete';
-import { alpha, useTheme } from '@mui/material/styles';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
 import InputAdornment from '@mui/material/InputAdornment';
+import DialogContentText from '@mui/material/DialogContentText';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { bgGradient } from 'src/theme/css';
@@ -39,6 +45,8 @@ export default function CocktailView() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const glassList = [
     "Martini", "Rock", "Flute", "Tiki", "Beer", "Champagne", 
@@ -151,7 +159,7 @@ export default function CocktailView() {
     try {
       const docRef = doc(db, "cocktails", id);
       await updateDoc(docRef, data);
-      
+
       toast.success('🍸 Le cocktail a été modifié avec succès!', {
         position: "top-right",
         autoClose: 3000,
@@ -161,6 +169,38 @@ export default function CocktailView() {
       toast.error('Erreur lors de la modification du cocktail');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+  };
+
+  const handleDeleteConfirm = async () => {
+    setIsDeleting(true);
+    try {
+      const docRef = doc(db, "cocktails", id);
+      await deleteDoc(docRef);
+
+      toast.success('🗑️ Le cocktail a été supprimé avec succès!', {
+        position: "top-right",
+        autoClose: 3000,
+      });
+
+      // Redirect to cocktail list after 2 seconds
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 2000);
+    } catch (error) {
+      console.error('Error deleting cocktail:', error);
+      toast.error('❌ Erreur lors de la suppression du cocktail');
+      setIsDeleting(false);
+    } finally {
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -557,34 +597,61 @@ export default function CocktailView() {
           />
         </FormSection>
 
-        {/* Submit Button */}
+        {/* Action Buttons */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
         >
-          <LoadingButton
-            fullWidth
-            size="large"
-            type="submit"
-            variant="contained"
-            loading={isSubmitting}
-            sx={{
-              py: 1.5,
-              borderRadius: 2,
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              textTransform: 'none',
-              boxShadow: theme.shadows[8],
-              '&:hover': {
-                boxShadow: theme.shadows[12],
-                transform: 'translateY(-2px)',
-              },
-              transition: 'all 0.3s ease-in-out',
-            }}
-          >
-            {isSubmitting ? 'Modification en cours...' : 'Modifier le cocktail'}
-          </LoadingButton>
+          <Stack spacing={2}>
+            <LoadingButton
+              fullWidth
+              size="large"
+              type="submit"
+              variant="contained"
+              loading={isSubmitting}
+              sx={{
+                py: 1.5,
+                borderRadius: 2,
+                fontSize: '1.1rem',
+                fontWeight: 600,
+                textTransform: 'none',
+                boxShadow: theme.shadows[8],
+                '&:hover': {
+                  boxShadow: theme.shadows[12],
+                  transform: 'translateY(-2px)',
+                },
+                transition: 'all 0.3s ease-in-out',
+              }}
+            >
+              {isSubmitting ? 'Modification en cours...' : 'Modifier le cocktail'}
+            </LoadingButton>
+
+            <Button
+              fullWidth
+              size="large"
+              variant="outlined"
+              color="error"
+              onClick={handleDeleteClick}
+              disabled={isDeleting}
+              startIcon={<Iconify icon="eva:trash-2-outline" />}
+              sx={{
+                py: 1.5,
+                borderRadius: 2,
+                fontSize: '1rem',
+                fontWeight: 600,
+                textTransform: 'none',
+                borderWidth: 2,
+                '&:hover': {
+                  borderWidth: 2,
+                  transform: 'translateY(-2px)',
+                },
+                transition: 'all 0.3s ease-in-out',
+              }}
+            >
+              Supprimer le cocktail
+            </Button>
+          </Stack>
         </motion.div>
       </Stack>
     </motion.form>
@@ -619,6 +686,52 @@ export default function CocktailView() {
         pauseOnHover
         theme="light"
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+          },
+        }}
+      >
+        <DialogTitle id="alert-dialog-title" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Iconify icon="eva:alert-triangle-fill" width={28} sx={{ color: 'error.main' }} />
+          Confirmer la suppression
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Êtes-vous sûr de vouloir supprimer le cocktail <strong>{watchedValues.name}</strong> ?
+            <br />
+            <br />
+            Cette action est <strong>irréversible</strong> et supprimera définitivement toutes les informations associées à ce cocktail.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={handleDeleteCancel}
+            variant="outlined"
+            sx={{ borderRadius: 2 }}
+          >
+            Annuler
+          </Button>
+          <LoadingButton
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            color="error"
+            loading={isDeleting}
+            autoFocus
+            sx={{ borderRadius: 2 }}
+          >
+            Supprimer définitivement
+          </LoadingButton>
+        </DialogActions>
+      </Dialog>
       <Stack alignItems="center" justifyContent="center" sx={{ minHeight: 1, py: 4 }}>
         {isLoading ? (
           <motion.div
